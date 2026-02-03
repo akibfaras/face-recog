@@ -1,0 +1,8 @@
+opencv-python-headless
+onnxruntime
+redis
+numpy
+sqlalchemy
+psycopg2-binary
+pydantic-settings
+pgvector

@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  db:
+    image: ankane/pgvector:latest
+    container_name: face-recog-db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: face_recog
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d face_recog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: face-recog-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build: 
+      context: .
+      dockerfile: ./services/user-service/Dockerfile
+    container_name: face-recog-user-service
+    ports:
+      - "9001:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/face_recog
+      REDIS_URL: redis://redis:6379/0
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - object_store:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  encoding-service:
+    build:
+      context: .
+      dockerfile: ./services/encoding-service/Dockerfile
+    container_name: face-recog-encoding-service
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/face_recog
+      REDIS_URL: redis://redis:6379/0
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - object_store:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  attendance-service:
+    build:
+      context: .
+      dockerfile: ./services/attendance-service/Dockerfile
+    container_name: face-recog-attendance-service
+    ports:
+      - "9002:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/face_recog
+    volumes:
+      - attendance_data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  recognition-service:
+    build:
+      context: .
+      dockerfile: ./services/recognition-service/Dockerfile
+    container_name: face-recog-recognition-service
+    ports:
+      - "9003:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/face_recog
+      ATTENDANCE_SERVICE_URL: http://attendance-service:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      attendance-service:
+        condition: service_started
+
+  fingerprint-service:
+    build:
+      context: .
+      dockerfile: ./services/fingerprint-service/Dockerfile
+    container_name: face-recog-fingerprint-service
+    ports:
+      - "9004:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/face_recog
+      ATTENDANCE_SERVICE_URL: http://attendance-service:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      attendance-service:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:
+  object_store:
+  attendance_data:
