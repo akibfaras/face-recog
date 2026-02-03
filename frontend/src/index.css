@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+
+  @apply bg-primary text-primary-foreground antialiased;
+
+}
+
+
+
+.card {
+
+  @apply bg-primary-foreground/5 p-6 rounded-2xl border border-primary-foreground/10;
+
+}
+
+
+
+.input-field {
+
+  @apply w-full p-2.5 bg-primary border border-primary-foreground/20 rounded-lg text-primary-foreground outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all placeholder:text-primary-foreground/30;
+
+}
