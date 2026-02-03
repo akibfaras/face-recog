@@ -156,7 +156,8 @@ const App = () => {
     e.preventDefault();
     setIsRegistering(true);
     try {
-      const resp = await axios.post(`${API_URLS.USER}/users/`, null, { params: newUser });
+      // Send data in the request BODY (JSON)
+      const resp = await axios.post(`${API_URLS.USER}/users/`, newUser);
       const createdUser = resp.data;
       
       // 1. Enroll Face if captured

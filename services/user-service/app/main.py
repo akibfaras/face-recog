@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
+from pydantic import BaseModel
 from typing import List
 import redis
 import os
@@ -22,39 +23,39 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
+class UserCreate(BaseModel):
+    employee_id: str
+    full_name: str
+    email: str = None
+    dob: str = None
+    contact_number: str = None
+    department: str = None
+    position: str = None
+    hire_date: str = None
+    salary: str = None
+    status: str = "Active"
+
 @app.get("/")
 def read_root():
     return {"service": "User Service", "status": "online"}
 
 @app.post("/users/")
-def create_user(
-    employee_id: str, 
-    full_name: str, 
-    email: str = None,
-    dob: str = None,
-    contact_number: str = None,
-    department: str = None,
-    position: str = None,
-    hire_date: str = None,
-    salary: str = None,
-    status: str = "Active",
-    db: Session = Depends(get_db)
-):
-    db_user = db.query(models.User).filter(models.User.employee_id == employee_id).first()
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.employee_id == user.employee_id).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Employee ID already registered")
     
     new_user = models.User(
-        employee_id=employee_id, 
-        full_name=full_name, 
-        email=email,
-        dob=dob,
-        contact_number=contact_number,
-        department=department,
-        position=position,
-        hire_date=hire_date,
-        salary=salary,
-        status=status
+        employee_id=user.employee_id, 
+        full_name=user.full_name, 
+        email=user.email,
+        dob=user.dob,
+        contact_number=user.contact_number,
+        department=user.department,
+        position=user.position,
+        hire_date=user.hire_date,
+        salary=user.salary,
+        status=user.status
     )
     db.add(new_user)
     db.commit()
@@ -64,7 +65,14 @@ def create_user(
 @app.get("/users/", response_model=List[dict])
 def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = db.query(models.User).offset(skip).limit(limit).all()
-    return [{"id": u.id, "employee_id": u.employee_id, "full_name": u.full_name} for u in users]
+    return [{
+        "id": u.id, 
+        "employee_id": u.employee_id, 
+        "full_name": u.full_name,
+        "department": u.department,
+        "position": u.position,
+        "status": u.status
+    } for u in users]
 
 @app.post("/users/{user_id}/enroll")
 async def enroll_face(user_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
@@ -83,7 +91,7 @@ async def enroll_face(user_id: int, file: UploadFile = File(...), db: Session = 
     event = {
         "user_id": user.id,
         "action": "ENCODE_FACE",
-        "file_path": filename, # Pass relative path for shared volume
+        "file_path": filename,
         "timestamp": str(func.now())
     }
     
