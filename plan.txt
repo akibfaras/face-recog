@@ -1,1 +1,0 @@
-make a python based face recognition attendance system first design the architecture, keep it micro services based; plan db and schem and other required components. first give me the architecture documnet.

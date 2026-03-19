@@ -15,8 +15,8 @@ ENV PYTHONPATH=/app
 COPY services/recognition-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy common first
-COPY services/common ./common
+# Copy common into app/common to match the .common import in main.py
+COPY services/common ./app/common
 # Copy service app
 COPY services/recognition-service/app ./app
 

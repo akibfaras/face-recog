@@ -43,6 +43,8 @@ services:
       DATABASE_URL: postgresql://user:password@db:5432/face_recog
       REDIS_URL: redis://redis:6379/0
       UPLOAD_DIR: /app/uploads
+      RP_ID: ${RP_ID:-localhost}
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
     volumes:
       - object_store:/app/uploads
     depends_on:
@@ -77,10 +79,14 @@ services:
       - "9002:8000"
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/face_recog
+      REDIS_URL: redis://redis:6379/0
+      HOST_IP: ${HOST_IP}
     volumes:
       - attendance_data:/app/data
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   recognition-service:
@@ -99,21 +105,17 @@ services:
       attendance-service:
         condition: service_started
 
-  fingerprint-service:
+  frontend:
     build:
-      context: .
-      dockerfile: ./services/fingerprint-service/Dockerfile
-    container_name: face-recog-fingerprint-service
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: face-recog-frontend
     ports:
-      - "9004:8000"
-    environment:
-      DATABASE_URL: postgresql://user:password@db:5432/face_recog
-      ATTENDANCE_SERVICE_URL: http://attendance-service:8000
+      - "3000:3000"
     depends_on:
-      db:
-        condition: service_healthy
-      attendance-service:
-        condition: service_started
+      - user-service
+      - attendance-service
+      - recognition-service
 
 volumes:
   postgres_data:

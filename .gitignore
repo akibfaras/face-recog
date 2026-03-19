@@ -23,3 +23,8 @@ services/*/app/common/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local Security
+cert.pem
+key.pem
+frontend/.env

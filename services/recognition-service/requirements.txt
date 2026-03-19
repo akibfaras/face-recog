@@ -1,3 +1,5 @@
+fastapi
+uvicorn[standard]
 opencv-python-headless
 onnxruntime
 redis
